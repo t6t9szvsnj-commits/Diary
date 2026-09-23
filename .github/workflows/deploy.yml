@@ -1,0 +1,53 @@
+name: Обновить данные и выложить
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Раз в час, в 7 минут: в ровный час очередь у GitHub самая длинная.
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Тесты
+        run: python -m unittest discover -s tests -t .
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Собрать данные
+        env:
+          LK_LOGIN: ${{ secrets.LK_LOGIN }}
+          LK_PASSWORD: ${{ secrets.LK_PASSWORD }}
+        run: |
+          mkdir _site
+          cp -r app/. _site/
+          python scripts/fetch_data.py --out _site/data.json \
+            --previous "${{ steps.pages.outputs.base_url }}/data.json"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

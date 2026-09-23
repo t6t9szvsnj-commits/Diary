@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Дневник">
+<meta name="theme-color" content="#f4f2ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16161a" media="(prefers-color-scheme: dark)">
+<title>Дневник</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main>
+  <!-- Главная -->
+  <section id="view-home" class="view active">
+    <header class="top">
+      <div>
+        <div class="muted" id="today-weekday"></div>
+        <h1 id="today-date"></h1>
+      </div>
+      <button class="icon-btn" id="refresh-btn" aria-label="Обновить">↻</button>
+    </header>
+
+    <div class="card" id="weather-card">
+      <div class="card-head"><h2>Погода</h2><button class="link" id="city-btn"></button></div>
+      <div id="weather" class="weather"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Дедлайны</h2><button class="link" data-go="deadlines">все</button></div>
+      <ul id="home-deadlines" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Расписание</h2><span class="stamp" id="schedule-stamp"></span></div>
+      <ul id="schedule" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Курсы</h2><span class="stamp" id="markets-stamp"></span></div>
+      <div id="markets" class="markets"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Тех-новости</h2><span class="stamp" id="news-stamp"></span></div>
+      <ul id="news" class="list news"></ul>
+    </div>
+  </section>
+
+  <!-- Дневник -->
+  <section id="view-diary" class="view">
+    <header class="top"><h1>Дневник</h1>
+      <button class="icon-btn" id="new-entry-btn" aria-label="Новая запись">＋</button></header>
+    <input type="search" id="search" placeholder="Поиск по записям" autocomplete="off">
+    <div id="entries"></div>
+  </section>
+
+  <!-- Дедлайны -->
+  <section id="view-deadlines" class="view">
+    <header class="top"><h1>Дедлайны</h1></header>
+    <form id="deadline-form" class="card inline-form">
+      <input id="deadline-title" placeholder="Что сдать" required maxlength="200">
+      <input id="deadline-due" type="date" required>
+      <button type="submit" class="primary">Добавить</button>
+    </form>
+    <ul id="deadlines" class="list"></ul>
+    <details class="done-block">
+      <summary>Выполненные</summary>
+      <ul id="deadlines-done" class="list"></ul>
+    </details>
+  </section>
+
+  <!-- Настройки -->
+  <section id="view-settings" class="view">
+    <header class="top"><h1>Настройки</h1></header>
+    <form id="city-form" class="card">
+      <h2>Город для погоды</h2>
+      <div class="inline-form">
+        <input id="city-input" placeholder="Например, Казань" required>
+        <button type="submit" class="primary">Найти</button>
+      </div>
+      <p class="muted" id="city-status"></p>
+    </form>
+    <div class="card">
+      <h2>Резервная копия</h2>
+      <p class="muted">Записи и дедлайны хранятся только на этом телефоне. Сохраняйте копию время от времени — например, в «Файлы».</p>
+      <div class="row">
+        <button class="primary" id="export-btn">Сохранить копию</button>
+        <label class="btn">Восстановить<input type="file" id="import-input" accept="application/json,.json" hidden></label>
+      </div>
+      <p class="muted" id="backup-status"></p>
+    </div>
+    <p class="muted small" id="storage-status"></p>
+  </section>
+</main>
+
+<!-- Редактор записи -->
+<dialog id="editor">
+  <form method="dialog" id="editor-form">
+    <header class="editor-head">
+      <button value="cancel" class="link">Отмена</button>
+      <input type="date" id="editor-date" required>
+      <button value="save" class="link strong" id="editor-save">Готово</button>
+    </header>
+    <textarea id="editor-text" placeholder="Как прошёл день?"></textarea>
+    <button type="button" class="danger" id="editor-delete">Удалить запись</button>
+  </form>
+</dialog>
+
+<nav class="tabbar">
+  <button data-go="home" class="active"><span>☀︎</span>Сегодня</button>
+  <button data-go="diary"><span>✎</span>Дневник</button>
+  <button data-go="deadlines"><span>⚑</span>Дедлайны</button>
+  <button data-go="settings"><span>⚙︎</span>Настройки</button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
