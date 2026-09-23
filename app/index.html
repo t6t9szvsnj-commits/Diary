@@ -33,13 +33,17 @@
       <div id="weather" class="weather"></div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Дедлайны</h2><button class="link" data-go="deadlines">все</button></div>
+    <div class="card bright hot">
+      <div class="card-head"><h2>Дедлайны</h2>
+        <span class="head-actions"><button class="link" data-go="deadlines">все</button>
+        <button class="add-mini" data-add="deadline" aria-label="Добавить дедлайн">＋</button></span></div>
       <ul id="home-deadlines" class="list"></ul>
     </div>
 
-    <div class="card">
-      <div class="card-head"><h2>Расписание</h2><span class="stamp" id="schedule-stamp"></span></div>
+    <div class="card bright cool">
+      <div class="card-head"><h2>Расписание</h2>
+        <span class="head-actions"><span class="stamp" id="schedule-stamp"></span>
+        <button class="add-mini" data-add="event" aria-label="Добавить в расписание">＋</button></span></div>
       <ul id="schedule" class="list"></ul>
     </div>
 
@@ -52,6 +56,8 @@
       <div class="card-head"><h2>Тех-новости</h2><span class="stamp" id="news-stamp"></span></div>
       <ul id="news" class="list news"></ul>
     </div>
+
+    <button class="fab" data-add="" aria-label="Добавить дедлайн или пару">＋ Добавить</button>
   </section>
 
   <!-- Дневник -->
@@ -64,17 +70,22 @@
 
   <!-- Дедлайны -->
   <section id="view-deadlines" class="view">
-    <header class="top"><h1>Дедлайны</h1></header>
-    <form id="deadline-form" class="card inline-form">
-      <input id="deadline-title" placeholder="Что сдать" required maxlength="200">
-      <input id="deadline-due" type="date" required>
-      <button type="submit" class="primary">Добавить</button>
-    </form>
-    <ul id="deadlines" class="list"></ul>
+    <header class="top"><h1>Планы</h1>
+      <button class="icon-btn bright-btn" data-add="" aria-label="Добавить">＋</button></header>
+    <div class="card bright hot">
+      <div class="card-head"><h2>Дедлайны</h2>
+        <button class="add-mini" data-add="deadline" aria-label="Добавить дедлайн">＋</button></div>
+      <ul id="deadlines" class="list"></ul>
+    </div>
     <details class="done-block">
       <summary>Выполненные</summary>
       <ul id="deadlines-done" class="list"></ul>
     </details>
+    <div class="card bright cool">
+      <div class="card-head"><h2>Расписание</h2>
+        <button class="add-mini" data-add="event" aria-label="Добавить в расписание">＋</button></div>
+      <ul id="events-all" class="list"></ul>
+    </div>
   </section>
 
   <!-- Настройки -->
@@ -90,7 +101,7 @@
     </form>
     <div class="card">
       <h2>Резервная копия</h2>
-      <p class="muted">Записи и дедлайны хранятся только на этом телефоне. Сохраняйте копию время от времени — например, в «Файлы».</p>
+      <p class="muted">Записи, дедлайны и расписание хранятся только на этом телефоне. Сохраняйте копию время от времени — например, в «Файлы».</p>
       <div class="row">
         <button class="primary" id="export-btn">Сохранить копию</button>
         <label class="btn">Восстановить<input type="file" id="import-input" accept="application/json,.json" hidden></label>
@@ -114,10 +125,43 @@
   </form>
 </dialog>
 
+<!-- Быстрое добавление. Панель прижата к верху, а не к низу экрана:
+     на айфоне клавиатура не сдвигает страницу и закрыла бы нижнюю панель. -->
+<dialog id="quick" class="sheet">
+  <form id="quick-form">
+    <div class="seg">
+      <button type="button" data-kind="deadline">⚑ Дедлайн</button>
+      <button type="button" data-kind="event">🗓 Расписание</button>
+    </div>
+    <input id="q-title" maxlength="200" autocomplete="off" required>
+    <div class="q-deadline">
+      <input type="date" id="q-due">
+      <div class="chips">
+        <button type="button" data-due="0">Сегодня</button>
+        <button type="button" data-due="1">Завтра</button>
+        <button type="button" data-due="7">Через неделю</button>
+      </div>
+    </div>
+    <div class="q-event">
+      <input type="date" id="q-date">
+      <div class="two">
+        <label>Начало<input type="time" id="q-time"></label>
+        <label>Конец<input type="time" id="q-end"></label>
+      </div>
+      <input id="q-place" placeholder="Где: аудитория, адрес" maxlength="100" autocomplete="off">
+      <label class="toggle"><input type="checkbox" id="q-weekly"> Повторять каждую неделю</label>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn" id="q-cancel">Отмена</button>
+      <button type="submit" class="bright-btn big">Добавить</button>
+    </div>
+  </form>
+</dialog>
+
 <nav class="tabbar">
   <button data-go="home" class="active"><span>☀︎</span>Сегодня</button>
   <button data-go="diary"><span>✎</span>Дневник</button>
-  <button data-go="deadlines"><span>⚑</span>Дедлайны</button>
+  <button data-go="deadlines"><span>⚑</span>Планы</button>
   <button data-go="settings"><span>⚙︎</span>Настройки</button>
 </nav>
 

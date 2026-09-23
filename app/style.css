@@ -9,6 +9,10 @@
   --down: #c92a2a;
   --warn: #e8590c;
   --radius: 16px;
+  /* Яркие карточки одинаковы в обеих темах: на тёмном фоне они и так
+     светятся, а белый текст на них читается в любом режиме. */
+  --hot: linear-gradient(135deg, #f76707 0%, #e64980 100%);
+  --cool: linear-gradient(135deg, #7048e8 0%, #1c7ed6 100%);
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -35,7 +39,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 main {
-  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 84px);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 150px);
   max-width: 640px;
   margin: 0 auto;
 }
@@ -92,8 +96,12 @@ input[type=search] { background: var(--card); margin-bottom: 12px; }
 .news a { color: var(--text); text-decoration: none; display: block; }
 .news .meta { display: block; white-space: normal; margin-top: 2px; }
 
-.list .meta.due-soon { color: var(--warn); font-weight: 600; }
-.list .meta.due-over { color: var(--down); font-weight: 600; }
+/* Срок — цветная плашка. На обычном фоне плашка залита цветом,
+   на яркой карточке — белая с цветным текстом. */
+.pill { flex: none; align-self: center; font-size: 12px; font-weight: 700; line-height: 1;
+  padding: 5px 9px; border-radius: 999px; white-space: nowrap; background: var(--line); color: var(--text); }
+.pill.due-soon { background: var(--warn); color: #fff; }
+.pill.due-over { background: var(--down); color: #fff; }
 .check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; align-self: center; }
 .check.on { background: var(--accent); border-color: var(--accent); }
 .del { color: var(--muted); font-size: 18px; align-self: center; }
@@ -141,3 +149,69 @@ dialog textarea { flex: 1; resize: none; border: 0; background: var(--card); bor
 .tabbar button { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); padding: 4px 0; }
 .tabbar button span { font-size: 21px; line-height: 1.2; }
 .tabbar button.active { color: var(--accent); }
+
+/* ---------- яркие карточки ---------- */
+.bright { color: #fff; box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.35); }
+.bright.hot { background: var(--hot); }
+.bright.cool { background: var(--cool); }
+.bright h2 { color: rgba(255, 255, 255, 0.85); }
+.bright .link { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.bright .stamp { color: rgba(255, 255, 255, 0.8); }
+.bright .list li { border-top-color: rgba(255, 255, 255, 0.22); }
+.bright .grow { font-weight: 600; }
+.bright .empty { color: rgba(255, 255, 255, 0.85); }
+.bright .pill { background: rgba(255, 255, 255, 0.22); color: #fff; }
+.bright .pill.due-soon { background: #fff; color: #d9480f; }
+.bright .pill.due-over { background: #fff; color: #c92a2a; }
+.bright .check { border-color: rgba(255, 255, 255, 0.7); }
+.bright .check.on { background: #fff; border-color: #fff; }
+.bright .del { color: rgba(255, 255, 255, 0.8); }
+.head-actions { display: flex; align-items: center; gap: 12px; }
+.add-mini { width: 30px; height: 30px; border-radius: 50%; background: rgba(255, 255, 255, 0.25);
+  color: #fff; font-size: 20px; font-weight: 700; line-height: 30px; text-align: center; }
+
+.list li.sub { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+  opacity: 0.8; padding: 12px 0 2px; border-top: 0; }
+.list li.sub:first-child { padding-top: 0; }
+.list .time { flex: none; min-width: 88px; font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.9; }
+.list .place { font-weight: 400; opacity: 0.85; }
+.list li.past { opacity: 0.5; }
+.list li.now .grow { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.bright li.now .pill { background: #fff; color: #5f3dc4; }
+
+/* ---------- кнопки добавления ---------- */
+.bright-btn { background: var(--hot); color: #fff; font-weight: 700; border-radius: 12px;
+  box-shadow: 0 6px 16px -6px rgba(230, 73, 128, 0.7); }
+.icon-btn.bright-btn { border-radius: 50%; }
+.bright-btn.big { padding: 12px 22px; font-size: 17px; }
+.fab {
+  position: fixed; right: 16px; z-index: 5;
+  bottom: calc(env(safe-area-inset-bottom) + 72px);
+  background: var(--hot); color: #fff; font-weight: 700; font-size: 17px;
+  padding: 14px 22px; border-radius: 999px;
+  box-shadow: 0 10px 24px -8px rgba(230, 73, 128, 0.8);
+}
+.fab:active, .bright-btn:active { transform: scale(0.97); }
+
+/* ---------- панель быстрого добавления ---------- */
+dialog.sheet {
+  /* У модального окна inset: 0 по умолчанию — без этого оно тянется до низа. */
+  inset: 0 0 auto 0; height: auto; max-height: 100%; margin: 0;
+  background: var(--card); border-radius: 0 0 22px 22px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+}
+dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.45); }
+dialog.sheet form { height: auto; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 16px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border-radius: 12px; padding: 3px; }
+.seg button { padding: 9px 0; border-radius: 10px; font-weight: 600; color: var(--muted); }
+.seg button.on[data-kind=deadline] { background: var(--hot); color: #fff; }
+.seg button.on[data-kind=event] { background: var(--cool); color: #fff; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.chips button { padding: 7px 12px; border-radius: 999px; background: var(--bg); font-size: 14px; font-weight: 600; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.two label { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.toggle { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 16px; }
+.toggle input { width: 22px; height: 22px; accent-color: #7048e8; }
+#quick[data-kind=deadline] .q-event, #quick[data-kind=event] .q-deadline { display: none; }
+.sheet-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

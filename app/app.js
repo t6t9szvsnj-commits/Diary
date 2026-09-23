@@ -73,11 +73,14 @@ const db = {
   open() {
     if (!this._p) {
       this._p = new Promise((resolve, reject) => {
-        const req = indexedDB.open("diary", 1);
+        const req = indexedDB.open("diary", 2);
+        // Версия 2 добавила расписание. Создаём только недостающее, чтобы
+        // обновление не трогало уже сохранённые записи и дедлайны.
         req.onupgradeneeded = () => {
           const d = req.result;
-          d.createObjectStore("entries", { keyPath: "id" });
-          d.createObjectStore("deadlines", { keyPath: "id" });
+          for (const name of ["entries", "deadlines", "events"]) {
+            if (!d.objectStoreNames.contains(name)) d.createObjectStore(name, { keyPath: "id" });
+          }
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -106,7 +109,7 @@ function go(view) {
   document.querySelectorAll(".tabbar button").forEach((b) => b.classList.toggle("active", b.dataset.go === view));
   window.scrollTo(0, 0);
   if (view === "diary") renderEntries();
-  if (view === "deadlines") renderDeadlines();
+  if (view === "deadlines") renderPlans();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-go]");
@@ -204,16 +207,16 @@ function dueLabel(due) {
 
 function deadlineRow(d, withControls) {
   const label = dueLabel(d.due);
-  const toggle = async () => { await db.put("deadlines", { ...d, done: !d.done }); renderDeadlines(); renderHomeDeadlines(); };
+  const toggle = async () => { await db.put("deadlines", { ...d, done: !d.done }); renderPlans(); };
   return el("li", {},
     withControls && el("button", { class: `check ${d.done ? "on" : ""}`, "aria-label": "Готово", onclick: toggle }),
     el("span", { class: "grow" }, d.title),
-    !d.done && el("span", { class: `meta ${label.cls}` }, label.text),
+    !d.done && el("span", { class: `pill ${label.cls}` }, label.text),
     withControls && el("button", {
       class: "del", "aria-label": "Удалить",
       onclick: async () => {
         if (!confirm(`Удалить «${d.title}»?`)) return;
-        await db.del("deadlines", d.id); renderDeadlines(); renderHomeDeadlines();
+        await db.del("deadlines", d.id); renderPlans();
       },
     }, "×"));
 }
@@ -232,16 +235,148 @@ async function renderHomeDeadlines() {
     : [el("li", { class: "empty" }, "Ничего не горит")]));
 }
 
-$("#deadline-due").value = isoDay(new Date(Date.now() + 7 * 86400000));
-$("#deadline-form").addEventListener("submit", async (e) => {
+// ---------- расписание (своё, вручную) ----------
+
+let lkSchedule = {}; // то, что пришло из личного кабинета через data.json
+
+const WEEKDAYS = ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"];
+
+// Еженедельное событие повторяется в тот же день недели, начиная с даты,
+// на которую его завели; разовое — только в свою дату.
+function eventsOn(day, events) {
+  const wd = parseDay(day).getDay();
+  return events
+    .filter((e) => (e.repeat === "weekly" ? day >= e.date && parseDay(e.date).getDay() === wd : e.date === day))
+    .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+}
+
+function eventTime(e) {
+  if (!e.time) return "весь день";
+  return e.end ? `${e.time}–${e.end}` : e.time;
+}
+
+function eventState(e, day) {
+  if (day !== isoDay() || !e.time) return "";
+  const now = new Date().toTimeString().slice(0, 5);
+  if (e.end && e.time <= now && now < e.end) return "now";
+  return (e.end || e.time) <= now ? "past" : "";
+}
+
+function eventRow(e, day, withDelete) {
+  const state = eventState(e, day);
+  return el("li", { class: state },
+    el("span", { class: "time" }, eventTime(e)),
+    el("span", { class: "grow" }, e.title, e.place && el("span", { class: "place" }, ` · ${e.place}`)),
+    state === "now" && el("span", { class: "pill" }, "сейчас"),
+    withDelete && el("button", {
+      class: "del", "aria-label": "Удалить",
+      onclick: async () => {
+        const q = e.repeat === "weekly" ? `Убрать «${e.title}» из расписания на все недели?` : `Удалить «${e.title}»?`;
+        if (!confirm(q)) return;
+        await db.del("events", e.id); renderPlans();
+      },
+    }, "×"));
+}
+
+async function renderSchedule() {
+  const events = await db.all("events");
+  const today = isoDay(), tomorrow = isoDay(new Date(Date.now() + 86400000));
+  const lk = (lkSchedule.items || []).map((l) => ({ title: l.title || "", time: l.time, place: l.room }));
+  const todays = [...lk, ...eventsOn(today, events)].sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+  const tomorrows = eventsOn(tomorrow, events);
+  const rows = [];
+  if (todays.length) rows.push(el("li", { class: "sub" }, "Сегодня"), ...todays.map((e) => eventRow(e, today, false)));
+  if (tomorrows.length) rows.push(el("li", { class: "sub" }, "Завтра"), ...tomorrows.map((e) => eventRow(e, tomorrow, false)));
+  if (!rows.length) rows.push(el("li", { class: "empty" }, "Сегодня и завтра свободно. Нажмите ＋, чтобы добавить пары."));
+  $("#schedule").replaceChildren(...rows);
+  stamp($("#schedule-stamp"), lk.length ? lkSchedule : null);
+}
+
+async function renderEventsAll() {
+  const events = await db.all("events");
+  const today = isoDay();
+  const weekly = events.filter((e) => e.repeat === "weekly");
+  const once = events.filter((e) => e.repeat !== "weekly" && e.date >= today).sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
+  const rows = [];
+  // Неделя с понедельника, как в любом учебном расписании.
+  for (const wd of [1, 2, 3, 4, 5, 6, 0]) {
+    const day = weekly.filter((e) => parseDay(e.date).getDay() === wd).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+    if (!day.length) continue;
+    rows.push(el("li", { class: "sub" }, cap(WEEKDAYS[wd])), ...day.map((e) => eventRow(e, "", true)));
+  }
+  if (once.length) {
+    rows.push(el("li", { class: "sub" }, "Разовые"));
+    for (const e of once) {
+      const row = eventRow(e, e.date, true);
+      row.querySelector(".time").textContent = `${fmtDate(e.date, { day: "numeric", month: "short" })}, ${eventTime(e)}`;
+      rows.push(row);
+    }
+  }
+  $("#events-all").replaceChildren(...(rows.length ? rows : [el("li", { class: "empty" }, "Расписание пустое")]));
+}
+
+function renderPlans() {
+  renderDeadlines();
+  renderHomeDeadlines();
+  renderSchedule();
+  renderEventsAll();
+}
+
+// ---------- быстрое добавление ----------
+
+const DAY_MS = 86400000;
+let quickKind = "deadline";
+
+function setQuickKind(kind) {
+  quickKind = kind;
+  document.querySelectorAll("#quick .seg button").forEach((b) => b.classList.toggle("on", b.dataset.kind === kind));
+  $("#quick").dataset.kind = kind;
+  $("#q-title").placeholder = kind === "deadline" ? "Что сдать" : "Что: пара, встреча, тренировка";
+}
+
+function openQuick(kind) {
+  setQuickKind(kind || lsGet("quickKind", "deadline"));
+  $("#quick-form").reset();
+  $("#q-due").value = isoDay(new Date(Date.now() + 7 * DAY_MS));
+  $("#q-date").value = isoDay();
+  $("#quick").showModal();
+  $("#q-title").focus();
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-add]");
+  if (b) openQuick(b.dataset.add);
+});
+document.querySelectorAll("#quick .seg button").forEach((b) =>
+  b.addEventListener("click", () => { setQuickKind(b.dataset.kind); $("#q-title").focus(); }));
+document.querySelectorAll("#quick [data-due]").forEach((b) =>
+  b.addEventListener("click", () => { $("#q-due").value = isoDay(new Date(Date.now() + Number(b.dataset.due) * DAY_MS)); }));
+$("#q-cancel").addEventListener("click", () => $("#quick").close());
+// Тап по затемнению вокруг панели закрывает её.
+$("#quick").addEventListener("click", (e) => { if (e.target === $("#quick")) $("#quick").close(); });
+
+$("#quick-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const title = $("#deadline-title").value.trim();
+  const title = $("#q-title").value.trim();
   if (!title) return;
-  // Очищаем поле до записи в базу, а не после: иначе то, что успели
-  // набрать, пока шла запись, стиралось бы вместе с прошлым дедлайном.
-  $("#deadline-title").value = "";
-  await db.put("deadlines", { id: uid(), title, due: $("#deadline-due").value, done: false, created: new Date().toISOString() });
-  renderDeadlines(); renderHomeDeadlines();
+  const created = new Date().toISOString();
+  // Закрываем до записи в базу: второй быстрый тап не должен добавить дубль.
+  $("#quick").close();
+  lsSet("quickKind", quickKind);
+  if (quickKind === "deadline") {
+    await db.put("deadlines", { id: uid(), title, due: $("#q-due").value || isoDay(), done: false, created });
+  } else {
+    const time = $("#q-time").value, end = $("#q-end").value;
+    await db.put("events", {
+      id: uid(), title, created,
+      date: $("#q-date").value || isoDay(),
+      time: time || null,
+      end: time && end > time ? end : null,
+      place: $("#q-place").value.trim() || null,
+      repeat: $("#q-weekly").checked ? "weekly" : "none",
+    });
+  }
+  renderPlans();
 });
 
 // ---------- погода (Open-Meteo, прямо с телефона: у них открыт CORS) ----------
@@ -347,13 +482,8 @@ function renderData(data) {
     : [el("li", { class: "empty" }, "Нет данных")]));
   stamp($("#news-stamp"), data.news);
 
-  const sch = data.schedule || {};
-  const lessons = sch.items || [];
-  $("#schedule").replaceChildren(...(lessons.length ? lessons.map((l) => el("li", {},
-    el("span", { class: "meta" }, l.time || ""),
-    el("span", { class: "grow" }, l.title || "", l.room ? el("span", { class: "meta" }, ` · ${l.room}`) : null)))
-    : [el("li", { class: "empty" }, sch.note || sch.error || "Пар нет")]));
-  stamp($("#schedule-stamp"), lessons.length ? sch : null);
+  lkSchedule = data.schedule || {};
+  renderSchedule();
 }
 
 async function loadData() {
@@ -375,7 +505,7 @@ async function loadData() {
 $("#export-btn").addEventListener("click", async () => {
   const payload = {
     app: "diary", version: 1, exported: new Date().toISOString(),
-    entries: await db.all("entries"), deadlines: await db.all("deadlines"),
+    entries: await db.all("entries"), deadlines: await db.all("deadlines"), events: await db.all("events"),
   };
   const name = `дневник-${isoDay()}.json`;
   const file = new File([JSON.stringify(payload, null, 1)], name, { type: "application/json" });
@@ -389,7 +519,7 @@ $("#export-btn").addEventListener("click", async () => {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
   lsSet("lastBackup", Date.now());
-  $("#backup-status").textContent = `Копия: ${payload.entries.length} записей, ${payload.deadlines.length} дедлайнов.`;
+  $("#backup-status").textContent = `Копия: ${payload.entries.length} записей, ${payload.deadlines.length} дедлайнов, ${payload.events.length} в расписании.`;
 });
 
 $("#import-input").addEventListener("change", async (e) => {
@@ -399,13 +529,14 @@ $("#import-input").addEventListener("change", async (e) => {
   try {
     const data = JSON.parse(await f.text());
     if (data.app !== "diary") throw new Error("не тот файл");
-    const entries = data.entries || [], deadlines = data.deadlines || [];
+    const entries = data.entries || [], deadlines = data.deadlines || [], events = data.events || [];
     // Восстановление только добавляет и обновляет — ничего не стирает.
-    if (!confirm(`Восстановить ${entries.length} записей и ${deadlines.length} дедлайнов? Существующие не удалятся.`)) return;
+    if (!confirm(`Восстановить ${entries.length} записей, ${deadlines.length} дедлайнов и ${events.length} пунктов расписания? Существующие не удалятся.`)) return;
     for (const x of entries) await db.put("entries", x);
     for (const x of deadlines) await db.put("deadlines", x);
+    for (const x of events) await db.put("events", x);
     $("#backup-status").textContent = "Восстановлено.";
-    renderEntries(); renderDeadlines(); renderHomeDeadlines();
+    renderEntries(); renderPlans();
   } catch (err) {
     $("#backup-status").textContent = `Не получилось прочитать файл: ${err.message}`;
   }
@@ -421,7 +552,7 @@ function renderHeader() {
 
 function refreshAll(force) {
   renderHeader();
-  renderHomeDeadlines();
+  renderPlans();
   loadWeather(force);
   loadData();
   lsSet("lastRefresh", Date.now());
