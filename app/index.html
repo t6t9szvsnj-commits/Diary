@@ -81,10 +81,32 @@
       <summary>Выполненные</summary>
       <ul id="deadlines-done" class="list"></ul>
     </details>
+  </section>
+
+  <!-- Учёба -->
+  <section id="view-study" class="view">
+    <header class="top"><h1>Учёба</h1>
+      <button class="icon-btn bright-btn cool-btn" data-add="event" aria-label="Добавить пару">＋</button></header>
+
     <div class="card bright cool">
       <div class="card-head"><h2>Расписание</h2>
         <button class="add-mini" data-add="event" aria-label="Добавить в расписание">＋</button></div>
       <ul id="events-all" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Оценки</h2><span class="stamp" id="grades-stamp"></span></div>
+      <ul id="grades" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Незакрытые модули</h2><span class="stamp" id="modules-stamp"></span></div>
+      <ul id="modules" class="list"></ul>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Пропуски</h2><span class="stamp" id="absences-stamp"></span></div>
+      <ul id="absences" class="list"></ul>
     </div>
   </section>
 
@@ -162,6 +184,7 @@
   <button data-go="home" class="active"><span>☀︎</span>Сегодня</button>
   <button data-go="diary"><span>✎</span>Дневник</button>
   <button data-go="deadlines"><span>⚑</span>Планы</button>
+  <button data-go="study"><span>🎓</span>Учёба</button>
   <button data-go="settings"><span>⚙︎</span>Настройки</button>
 </nav>
 

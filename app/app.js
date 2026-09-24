@@ -110,6 +110,7 @@ function go(view) {
   window.scrollTo(0, 0);
   if (view === "diary") renderEntries();
   if (view === "deadlines") renderPlans();
+  if (view === "study") renderStudy();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-go]");
@@ -318,8 +319,39 @@ async function renderEventsAll() {
 function renderPlans() {
   renderDeadlines();
   renderHomeDeadlines();
-  renderSchedule();
+  renderSchedule();   // короткий блок «сегодня/завтра» на главной
+  renderEventsAll();  // недельное расписание во вкладке «Учёба»
+}
+
+// ---------- вкладка «Учёба» ----------
+
+// Оценки, модули и пропуски приходят из ЛК через data.json (когда он подключён).
+// Пока источника нет, показываем понятную заглушку, а не пустоту.
+function renderLkSection(listId, stampId, section, render, emptyText) {
+  const items = section?.items || [];
+  const node = document.getElementById(listId);
+  node.replaceChildren(...(items.length
+    ? items.map(render)
+    : [el("li", { class: "empty" }, emptyText)]));
+  stamp(document.getElementById(stampId), items.length ? section : null);
+}
+
+let lkStudy = {}; // { grades, modules, absences } из data.json
+
+function renderStudy() {
   renderEventsAll();
+  renderLkSection("grades", "grades-stamp", lkStudy.grades, (g) => el("li", {},
+    el("span", { class: "grow" }, g.subject || g.title || ""),
+    g.value != null && el("span", { class: "pill" }, String(g.value))),
+    "Появятся, когда подключишь личный кабинет");
+  renderLkSection("modules", "modules-stamp", lkStudy.modules, (m) => el("li", {},
+    el("span", { class: "grow" }, m.title || m.subject || ""),
+    m.deadline && el("span", { class: "meta" }, m.deadline)),
+    "Появятся, когда подключишь личный кабинет");
+  renderLkSection("absences", "absences-stamp", lkStudy.absences, (a) => el("li", {},
+    el("span", { class: "grow" }, a.subject || a.title || a.date || ""),
+    a.count != null && el("span", { class: "pill" }, String(a.count))),
+    "Появятся, когда подключишь личный кабинет");
 }
 
 // ---------- быстрое добавление ----------
@@ -483,7 +515,9 @@ function renderData(data) {
   stamp($("#news-stamp"), data.news);
 
   lkSchedule = data.schedule || {};
+  lkStudy = data.study || {};
   renderSchedule();
+  if (document.getElementById("view-study").classList.contains("active")) renderStudy();
 }
 
 async function loadData() {

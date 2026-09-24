@@ -140,13 +140,13 @@ dialog textarea { flex: 1; resize: none; border: 0; background: var(--card); bor
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px);
   background: color-mix(in srgb, var(--card) 85%, transparent);
   -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
   border-top: 1px solid var(--line);
 }
-.tabbar button { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); padding: 4px 0; }
+.tabbar button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; color: var(--muted); padding: 4px 0; }
 .tabbar button span { font-size: 21px; line-height: 1.2; }
 .tabbar button.active { color: var(--accent); }
 
@@ -215,3 +215,5 @@ dialog.sheet form { height: auto; gap: 12px;
 .toggle input { width: 22px; height: 22px; accent-color: #7048e8; }
 #quick[data-kind=deadline] .q-event, #quick[data-kind=event] .q-deadline { display: none; }
 .sheet-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+.bright-btn.cool-btn { background: var(--cool); box-shadow: 0 6px 16px -6px rgba(28, 126, 214, 0.7); }

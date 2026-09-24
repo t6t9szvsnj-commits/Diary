@@ -1,6 +1,6 @@
 // Сначала сеть, потом кэш: так обновления приложения приходят сразу,
 // а без интернета всё равно открывается последняя версия.
-const CACHE = "diary-v2";
+const CACHE = "diary-v3";
 const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon-180.png", "icon-512.png"];
 const NET_TIMEOUT = 4000;
 
