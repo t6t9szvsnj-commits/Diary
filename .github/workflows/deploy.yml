@@ -20,6 +20,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.check.outputs.pages }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,9 +29,23 @@ jobs:
           python-version: "3.12"
       - name: Тесты
         run: python -m unittest discover -s tests -t .
+      # Пока GitHub Pages не включён, выкладывать некуда. Не падаем, а
+      # пропускаем выкладку — иначе письмо об ошибке приходило бы каждый час.
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" --silent 2>/dev/null; then
+            echo "pages=on" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::GitHub Pages не включён: Settings → Pages → Source: GitHub Actions"
+            echo "pages=off" >> "$GITHUB_OUTPUT"
+          fi
       - id: pages
+        if: steps.check.outputs.pages == 'on'
         uses: actions/configure-pages@v5
       - name: Собрать данные
+        if: steps.check.outputs.pages == 'on'
         env:
           LK_LOGIN: ${{ secrets.LK_LOGIN }}
           LK_PASSWORD: ${{ secrets.LK_PASSWORD }}
@@ -38,12 +54,14 @@ jobs:
           cp -r app/. _site/
           python scripts/fetch_data.py --out _site/data.json \
             --previous "${{ steps.pages.outputs.base_url }}/data.json"
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.check.outputs.pages == 'on'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
   deploy:
     needs: build
+    if: needs.build.outputs.pages == 'on'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

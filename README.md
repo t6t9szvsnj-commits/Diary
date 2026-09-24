@@ -25,8 +25,9 @@ GitHub Actions (раз в час)
 ## Первый запуск
 
 1. Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+   Пока Pages не включён, workflow прогоняет тесты и тихо пропускает выкладку.
 2. Actions → «Обновить данные и выложить» → Run workflow.
-3. Открыть `https://<логин>.github.io/diary/` в **Safari** на айфоне →
+3. Открыть адрес из Settings → Pages в **Safari** на айфоне →
    «Поделиться» → «На экран „Домой“».
 
 Третий шаг важен: без него Safari может стереть данные сайта, который
