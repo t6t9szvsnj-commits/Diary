@@ -1,6 +1,6 @@
 // Сначала сеть, потом кэш: так обновления приложения приходят сразу,
 // а без интернета всё равно открывается последняя версия.
-const CACHE = "diary-v3";
+const CACHE = "diary-v4";
 const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon-180.png", "icon-512.png"];
 const NET_TIMEOUT = 4000;
 
@@ -22,7 +22,7 @@ self.addEventListener("fetch", (e) => {
     const cache = await caches.open(CACHE);
     try {
       const res = await Promise.race([
-        fetch(e.request),
+        fetch(e.request, { cache: "no-store" }),
         new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), NET_TIMEOUT)),
       ]);
       if (res.ok) cache.put(e.request, res.clone());
